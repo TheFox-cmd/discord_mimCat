@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import random
 import tkinter as tk
 import discord
@@ -6,7 +7,9 @@ from discord.ext import commands
 import requests
 from user import User
 from rps import start_rps_game
+from emoji import art_react
 
+load_dotenv()
 token = os.environ['DISCORD_BOT_TOKEN']
 
 intents = discord.Intents.default()
@@ -85,6 +88,14 @@ async def roll(ctx, sides: int = 6):
 async def rps(ctx, target_user : discord.Member):
     """Play rock paper scissors with a user"""
     await start_rps_game(ctx, target_user)
+
+# Auto react to art related messages
+@bot.event
+async def on_message(message: discord.Message):
+    await art_react(message)
+    
+    # Allow other commands to process if applicable
+    await bot.process_commands(message)
 
 
 # authenticate with DeviantArt API
