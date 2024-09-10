@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 import random
-import tkinter as tk
 import discord
 from discord.ext import commands
 import requests
@@ -9,7 +8,7 @@ from user import User
 from rps import start_rps_game
 from emoji import art_react
 
-load_dotenv()
+load_dotenv("./.env")
 token = os.environ['DISCORD_BOT_TOKEN']
 
 intents = discord.Intents.default()
@@ -158,30 +157,5 @@ async def image(ctx, prompt: str = None):
     for image in selected_images:
         image_url = image['content']['src']
         await ctx.send(image_url)
-
-# def create_wheel_image(titles, percentiles):
-#     """Create the picker wheel image."""
-#     # Create a blank image
-#     size = (400, 400)
-#     wheel = tk.Image.new("RGBA", size, (255, 255, 255, 0))
-#     draw = tk.ImageDraw.Draw(wheel)
-
-#     # Calculate the angles
-#     angles = [p * 3.6 for p in percentiles]
-#     start_angle = 0
-
-#     # Colors for each slice
-#     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
-
-#     for i, angle in enumerate(angles):
-#         end_angle = start_angle + angle
-#         draw.pieslice([(0, 0), size], start_angle, end_angle, fill=colors[i % len(colors)])
-#         start_angle = end_angle
-
-#     # Save the image to a bytes buffer
-#     buffer = io.BytesIO()
-#     wheel.save(buffer, format="PNG")
-#     buffer.seek(0)
-#     return buffer
 
 bot.run(token)
