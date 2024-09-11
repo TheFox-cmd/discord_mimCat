@@ -1,9 +1,11 @@
+import io
 import os
 from dotenv import load_dotenv
 import random
 import discord
 from discord.ext import commands
 import requests
+import aiohttp
 from user import User
 from rps import start_rps_game
 from emoji import art_react
@@ -23,6 +25,16 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
     await bot.tree.sync(guild=None)
     print(f'Logged in as {bot.user.name}')
+
+    # guild = discord.utils.get(bot.guilds, name="Just Us")
+    # if not guild: 
+    #     print("No guild found")
+    #     return 
+    
+    # print(f'Guild: {guild.name} (id: {guild.id})')
+    # for channel in guild.text_channels:
+    #     print(f'Text Channel: {channel.name} (id: {channel.id})')
+
 
 # Sync the server command tree
 @bot.command()
@@ -45,28 +57,6 @@ async def poke(ctx, target_user : discord.Member):
 async def ping(ctx):
     """Check bot's latency."""
     await ctx.send('Pong!')
-
-# Daily streak command
-serverUsers = {}
-@bot.hybrid_command(name= "daily", description="Claim your daily streak")
-async def daily(ctx):
-    """Claim your daily streak"""
-    discord_user = ctx.author
-    if discord_user not in serverUsers:
-        # Record new user in serverUsers dictionary
-        user = User(discord_user)
-        serverUsers[discord_user] = user
-    else: user = serverUsers[discord_user]
-    message = user.claimDaily()
-    await ctx.send(message)
-
-@bot.event
-async def artwork_submit(message): 
-    # channel_id = message.channel.id
-    # forwarded_channel = 
-    for channel in message.guild.channels:
-        print(f"Channel: {channel}")
-    return 
 
 # Nini command
 @bot.hybrid_command(name="bonk", description="Easter Egg")
@@ -96,12 +86,54 @@ async def rps(ctx, target_user : discord.Member):
     """Play rock paper scissors with a user"""
     await start_rps_game(ctx, target_user)
 
-# Auto react to art related messages
+serverUsers = {}
+async def update_daily(discord_user : discord.Member):
+    """Claim your daily streak"""
+    if discord_user not in serverUsers:
+        # Record new user in serverUsers dictionary
+        user = User(discord_user)
+        serverUsers[discord_user] = user
+    else: user = serverUsers[discord_user]
+    message = user.claimDaily()
+    return message
+
+# Event listener when a message is sent
 @bot.event
 async def on_message(message: discord.Message):
     await art_react(message)
     
-    # Allow other commands to process if applicable
+    if message.author.bot: return
+
+    streak_channel = discord.utils.get(message.guild.text_channels, id=1281046465875148892)
+    practice_channel = discord.utils.get(message.guild.text_channels, id=1147617085741076481)
+    design_channel = discord.utils.get(message.guild.text_channels, id=1158562205848055858)
+
+    print(f"Message channel: {message.channel.name}")
+
+    if message.channel != practice_channel and message.channel != design_channel: return 
+    if not message.attachments: return
+    for attachment in message.attachments:
+        if not attachment.content_type.startswith('image/'): continue
+
+        # Download the image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment.url) as resp:
+                if resp.status != 200:
+                    print(f"Failed to download image: {attachment.url}")
+                    return
+
+                # Create a discord.File object from the binary data
+                image_data = await resp.read()
+                file = discord.File(fp=io.BytesIO(image_data), filename=attachment.filename)
+                # Send the image to the streak_channel
+                if streak_channel: await streak_channel.send(file=file)
+    
+        daily_message = await update_daily(message.author)
+        await streak_channel.send(daily_message)
+        print(f"{message.author} {daily_message}")
+        await streak_channel.send(f"{message.author.mention} has submitted their daily artwork!")
+        break 
+
     await bot.process_commands(message)
 
 
