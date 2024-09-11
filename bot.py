@@ -47,18 +47,26 @@ async def ping(ctx):
     await ctx.send('Pong!')
 
 # Daily streak command
-serverUsersID = {}
+serverUsers = {}
 @bot.hybrid_command(name= "daily", description="Claim your daily streak")
 async def daily(ctx):
     """Claim your daily streak"""
-    userID = ctx.author.id
-    if userID not in serverUsersID:
-        # New user
-        user = User((userID, ctx.author.name))
-        serverUsersID[userID] = user
-    else: user = serverUsersID[userID]
+    discord_user = ctx.author
+    if discord_user not in serverUsers:
+        # Record new user in serverUsers dictionary
+        user = User(discord_user)
+        serverUsers[discord_user] = user
+    else: user = serverUsers[discord_user]
     message = user.claimDaily()
     await ctx.send(message)
+
+@bot.event
+async def artwork_submit(message): 
+    # channel_id = message.channel.id
+    # forwarded_channel = 
+    for channel in message.guild.channels:
+        print(f"Channel: {channel}")
+    return 
 
 # Nini command
 @bot.hybrid_command(name="bonk", description="Easter Egg")
