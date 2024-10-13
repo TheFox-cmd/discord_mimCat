@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import pytz
 
+
 class User: 
   def __init__(self, user):
     self.user = user

@@ -20,7 +20,6 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 
-
 @bot.event
 async def on_ready():
     await bot.tree.sync(guild=None)
@@ -104,9 +103,13 @@ async def on_message(message: discord.Message):
     
     if message.author.bot: return
 
-    streak_channel = discord.utils.get(message.guild.text_channels, id=1281046465875148892)
-    practice_channel = discord.utils.get(message.guild.text_channels, id=1147617085741076481)
-    design_channel = discord.utils.get(message.guild.text_channels, id=1158562205848055858)
+    streakID = 1281046465875148892
+    practiceID = 1147617085741076481
+    designID = 1158562205848055858
+
+    streak_channel = discord.utils.get(message.guild.text_channels, id=streakID)
+    practice_channel = discord.utils.get(message.guild.text_channels, id=practiceID)
+    design_channel = discord.utils.get(message.guild.text_channels, id=designID)
 
     print(f"Message channel: {message.channel.name}")
 

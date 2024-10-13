@@ -5,5 +5,19 @@
     "mimhelp",
     "Nini",
     "nino"
-  ]
+  ], 
+  "better-comments.tags": [
+    {
+        "tag": "FIX:",
+        "color": "#ff0033",  
+        "strikethrough": true,
+        "underline": true
+    },
+    {
+        "tag": "DEBUG:",
+        "color": "#00ccff", 
+        "strikethrough": false,
+        "underline": true
+    },
+]
 }
