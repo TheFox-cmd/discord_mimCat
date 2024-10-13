@@ -10,9 +10,7 @@ import os
 from dotenv import load_dotenv
 
 # TODO: Implement daily streaks for users
-# ? 4. Redeem Days
 # * 5. Discord UI for claiming daily streak 
-# ? 6. Based on user's local time
 # / 7. Leaderboard 
 
 load_dotenv("./.env")
@@ -41,7 +39,7 @@ class StreakCog(commands.cog):
     target = userTime.replace(hour=0, minute=0, second=0, microsecond=0)
     startClaim = target + timedelta(days=1)
     endClaim = target + timedelta(days=2)
-    userCurrentStreak, userLongestStreak = acquireUser[1], acquireUser[2]
+    userCurrentStreak, userLongestStreak, userRedeemDays = acquireUser[1], acquireUser[2], acquireUser[4]
 
     # New user claiming daily streak
     if acquireUser is None: 
@@ -53,22 +51,20 @@ class StreakCog(commands.cog):
     if userTime < startClaim: 
       return f"{ctx.author.mention}, You have already claimed your daily streak today. Please wait until tomorrow to claim again." 
 
-    # User has claimed their daily streak within the 24 hour window
-    if startClaim < userTime and userTime < endClaim:
-      currentStreak = userCurrentStreak + 1
-      longestStreak = userLongestStreak
+    # Determine if user has claimed their daily streak within the 24 hour window
+    if startClaim < userTime and userTime < endClaim: userCurrentStreak += 1
+    else: userCurrentStreak = 1
 
-      if currentStreak > longestStreak: longestStreak = currentStreak
+    # Check if user has redeemed their daily streak for 7 days
+    userRedeemDays = userRedeemDays + 1 if userCurrentStreak >= 7 else userRedeemDays
 
-      self.c.execute(f'UPDATE streaks SET currentStreak = {currentStreak}, longestStreak = {longestStreak}, startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {userID}')
-      self.conn.commit()
-      return f"Daily streak claimed! {ctx.author.mention}\nCurrent streak: {currentStreak}\nLongest streak: {longestStreak}"
+    # Update longest streak if current streak is greater
+    if userCurrentStreak > userLongestStreak: userLongestStreak = userCurrentStreak
     
-    # User has missed a day
-    currentStreak = 1
-    self.c.execute(f'UPDATE streaks SET currentStreak = {currentStreak}, startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {userID}')
+    # Sync user's streak data to the database
+    self.c.execute(f'UPDATE streaks SET currentStreak = {userCurrentStreak}, longestStreak = {userLongestStreak}, redeemDays = "{userRedeemDays}", startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {userID}')
     self.conn.commit()
-    return f"Daily streak claimed! {ctx.author.mention}\nCurrent streak: {currentStreak}\nLongest streak: {userLongestStreak}"
+    return f"Daily streak claimed! {ctx.author.mention}\nCurrent streak: {userCurrentStreak}\nLongest streak: {userLongestStreak}"
   
   # * Check redeem day qualifications
   def checkRedeem(self, ctx):
