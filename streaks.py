@@ -56,6 +56,17 @@ class StreakCog(commands.Cog):
     self.conn.commit()
     await ctx.send("Data cleared!")
 
+  @commands.command()
+  async def addStreak(self, member : discord.Member):
+    self.c.execute(f'SELECT * FROM streaks WHERE id = {member.id}')
+    user = self.c.fetchone()
+    if user is None: return
+
+    current, longest = user[1] + 1, user[1] + 1 if user[1] + 1 > user[2] else user[2]
+    self.c.execute(f'UPDATE streaks SET currentStreak = {current}, longestStreak = {longest} WHERE id = {member.id}')
+    self.conn.commit()
+    await member.send("Streak added!")
+
   # * Claim Daily Streak
   async def claimDaily(self, member : discord.Member):
     # Get ctx author's Info 
@@ -66,26 +77,23 @@ class StreakCog(commands.Cog):
     # Check if user exists in the database
     self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
     acquireUser = self.c.fetchone()
-    target = userTime.replace(hour=0, minute=0, second=0, microsecond=0)
-    startClaim = target + timedelta(days=1)
-    endClaim = target + timedelta(days=2)
 
-    userCurrentStreak, userLongestStreak, userRedeemDays = acquireUser[1], acquireUser[2], acquireUser[3]
+    userCurrentStreak, userLongestStreak, userRedeemDays, userStartClaim, userEndClaim = acquireUser[1], acquireUser[2], acquireUser[3], acquireUser[5], acquireUser[6]
 
     # New user claiming daily streak
     if acquireUser is None: 
-      self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({userID}, 1, 1, 0, "{startClaim}", "{endClaim}")')
+      self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({userID}, 1, 1, 0, "{userStartClaim}", "{userEndClaim}")')
       self.conn.commit()
       return f"Daily streak claimed! {member.mention}\nCurrent streak: 1\nLongest streak: 1"
 
     # User has already claimed their daily streak today
-    if userTime < startClaim: 
-      print(startClaim, userTime, endClaim, userCurrentStreak, userLongestStreak, userRedeemDays)
+    if userTime < userStartClaim: 
+      print(userStartClaim, userTime, userEndClaim, userCurrentStreak, userLongestStreak, userRedeemDays)
       print("--------------------")
       return f"{member.mention}, You have already claimed your daily streak today. Please wait until tomorrow to claim again." 
 
     # Determine if user has claimed their daily streak within the 24 hour window
-    if startClaim < userTime and userTime < endClaim: userCurrentStreak += 1
+    if userStartClaim < userTime and userTime < userEndClaim: userCurrentStreak += 1
     else: userCurrentStreak = 1
 
     # Check if user has redeemed their daily streak for 7 days
@@ -95,7 +103,7 @@ class StreakCog(commands.Cog):
     if userCurrentStreak > userLongestStreak: userLongestStreak = userCurrentStreak
     
     # Sync user's streak data to the database
-    self.c.execute(f'UPDATE streaks SET currentStreak = {userCurrentStreak}, longestStreak = {userLongestStreak}, redeemDays = "{userRedeemDays}", startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {userID}')
+    self.c.execute(f'UPDATE streaks SET currentStreak = {userCurrentStreak}, longestStreak = {userLongestStreak}, redeemDays = "{userRedeemDays}", startClaim = "{userStartClaim}", endClaim = "{userEndClaim}" WHERE id = {userID}')
     self.conn.commit()
     return f"Daily streak claimed! {member.mention}\nCurrent streak: {userCurrentStreak}\nLongest streak: {userLongestStreak}"
   
