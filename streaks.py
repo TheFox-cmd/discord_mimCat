@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv("./.env")
 
-class StreakCog(commands.cog): 
+class StreakCog(commands.Cog): 
   def __init__(self, bot):
     self.bot = bot
     self.conn = sqlite3.connect('user.db')
@@ -28,28 +28,61 @@ class StreakCog(commands.cog):
     self.c.execute('''CREATE TABLE IF NOT EXISTS streaks (id INTEGER PRIMARY KEY, currentStreak INTEGER, longestStreak INTEGER, redeemDays INTEGER , startClaim TEXT, endClaim TEXT)''')
     self.conn.commit()
 
+  # * Sync Past User Data
+  @commands.command()
+  async def syncPastData(self, ctx):
+    now = datetime.now(self.LA_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    startClaim = now
+    endClaim = now + timedelta(days=1)
+
+    print(startClaim, endClaim)
+
+    with open ("streak_data.txt", "r", encoding="utf-8") as file:
+      for line in file:
+        user_id, _, _, user_current_streak, user_longest_streak = line.strip().split(",")
+        self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({user_id}, {user_current_streak}, {user_longest_streak}, {0}, "{startClaim}", "{endClaim}")')
+        self.conn.commit()
+    await ctx.send("Synced past data!")
+
+  @commands.command()
+  async def fetchStreakData(self, ctx): 
+    self.c.execute('SELECT * FROM streaks')
+    print(self.c.fetchall())
+    await ctx.send("Data fetched!")
+
+  @commands.command()
+  async def clearStreakData(self, ctx):
+    self.c.execute('DELETE FROM streaks')
+    self.conn.commit()
+    await ctx.send("Data cleared!")
+
   # * Claim Daily Streak
-  def claimDaily(self, ctx):
+  async def claimDaily(self, member : discord.Member):
     # Get ctx author's Info 
-    userID = ctx.author.id
+    userID = member.id
+    print("User ID: ", userID)
     userTime = datetime.now(self.LA_TZ)
 
     # Check if user exists in the database
-    acquireUser = self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
+    self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
+    acquireUser = self.c.fetchone()
     target = userTime.replace(hour=0, minute=0, second=0, microsecond=0)
     startClaim = target + timedelta(days=1)
     endClaim = target + timedelta(days=2)
-    userCurrentStreak, userLongestStreak, userRedeemDays = acquireUser[1], acquireUser[2], acquireUser[4]
+
+    userCurrentStreak, userLongestStreak, userRedeemDays = acquireUser[1], acquireUser[2], acquireUser[3]
 
     # New user claiming daily streak
     if acquireUser is None: 
       self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({userID}, 1, 1, 0, "{startClaim}", "{endClaim}")')
       self.conn.commit()
-      return f"Daily streak claimed! {ctx.author.mention}\nCurrent streak: 1\nLongest streak: 1"
+      return f"Daily streak claimed! {member.mention}\nCurrent streak: 1\nLongest streak: 1"
 
     # User has already claimed their daily streak today
     if userTime < startClaim: 
-      return f"{ctx.author.mention}, You have already claimed your daily streak today. Please wait until tomorrow to claim again." 
+      print(startClaim, userTime, endClaim, userCurrentStreak, userLongestStreak, userRedeemDays)
+      print("--------------------")
+      return f"{member.mention}, You have already claimed your daily streak today. Please wait until tomorrow to claim again." 
 
     # Determine if user has claimed their daily streak within the 24 hour window
     if startClaim < userTime and userTime < endClaim: userCurrentStreak += 1
@@ -64,65 +97,73 @@ class StreakCog(commands.cog):
     # Sync user's streak data to the database
     self.c.execute(f'UPDATE streaks SET currentStreak = {userCurrentStreak}, longestStreak = {userLongestStreak}, redeemDays = "{userRedeemDays}", startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {userID}')
     self.conn.commit()
-    return f"Daily streak claimed! {ctx.author.mention}\nCurrent streak: {userCurrentStreak}\nLongest streak: {userLongestStreak}"
-  
-  # * Check redeem day qualifications
-  def checkRedeem(self, ctx):
-    userID = ctx.author.id
-    userTime = datetime.now(self.LA_TZ)
-    acquireUser = self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
-    userCurrentStreak, userRedeemDays = acquireUser[1], acquireUser[3]
-
-    if userCurrentStreak >= 7: 
-      self.c.execute(f'UPDATE streaks SET currentStreak = 0, redeemDays = {userRedeemDays + 1} WHERE id = {userID}')
+    return f"Daily streak claimed! {member.mention}\nCurrent streak: {userCurrentStreak}\nLongest streak: {userLongestStreak}"
   
   # * Reroute to Streak Channel for Artwork Uploads
-  @commands.Cog.listener()
   async def rerouteStreakChannel(self, message):
+
+    print(message)
+
     # Ignore messages from bots
     if message.author.bot: return
 
-    # Define the relevant channel IDs
-
     # Get the actual channel objects
-    streak_channel = discord.utils.get(message.guild.text_channels, id=os.getenv('JU_STREAK_ID'))
+    streak_channel = discord.utils.get(message.guild.text_channels, id=int(os.getenv('JU_STREAK_ID')))
+
+    print(streak_channel)
 
     # Check if the message is in either the practice or design channel
-    if message.channel.id not in {os.getenv('JU_PRACTICE_ID'), os.getenv('JU_DESIGN_ID')}: return  
+    if message.channel.id not in {int(os.getenv('JU_PRACTICE_ID')), int(os.getenv('JU_DESIGN_ID'))}: return  
+
+    print(message.channel.id)
+    
+    print(f"Rerouting message from {message.channel} to {streak_channel}")
 
     # Proceed if the message contains attachments
     if not message.attachments: return  
+
+    print("Message contains attachments")
 
     for attachment in message.attachments:
       # Only process image files
       if not attachment.content_type.startswith('image/'):
         continue
 
-      # Download and process the image
-      async with aiohttp.ClientSession() as session:
-        async with session.get(attachment.url) as resp:
-          if resp.status != 200:
-            print(f"Failed to download image: {attachment.url}")
-            return
+      try:
+        # Download and process the image
+        async with aiohttp.ClientSession() as session:
+          async with session.get(attachment.url) as resp:
+            if resp.status != 200:
+              print(f"Failed to download image: {attachment.url} (status: {resp.status})")
+              return
 
-        # Create a discord.File object from the binary data
-        image_data = await resp.read()
-        file = discord.File(fp=io.BytesIO(image_data), filename=attachment.filename)
+            # Create a discord.File object from the binary data
+            image_data = await resp.read()
+            file = discord.File(fp=io.BytesIO(image_data), filename=attachment.filename)
 
-        # Send the image to the streak_channel
-        if streak_channel:
-            await streak_channel.send(file=file)
+            # Send the image to the streak_channel
+            if streak_channel:
+              print(f"Sending image to {streak_channel}")
+              await streak_channel.send(file=file)
 
-      # Update the user's streak and send a daily message
-      dailyMessage = self.claimDaily(message.author)
-      await streak_channel.send(dailyMessage)
-      print(f"{message.author} {dailyMessage}")
-      await streak_channel.send(f"{message.author.mention} has submitted their daily artwork!")
+      except aiohttp.ClientError as e:
+        print(f"An error occurred during image download: {e}")
+        await streak_channel.send(f"Failed to download {attachment.filename}. Please try again later.")
+        return
+      finally:
+        # Update the user's streak and send a daily message
+        print("Message Author ID: ", message.author.id)  
+        dailyMessage = await self.claimDaily(message.author)
+        print(dailyMessage)
+        await streak_channel.send(dailyMessage)
+        break
+        print(f"{message.author} {dailyMessage}")
+        await streak_channel.send(f"{message.author.mention} has submitted their daily artwork!")
 
-    # ? Continue processing other bot commands
-    # await bot.process_commands(message)
-
-
+  # * Get Calendar View for Streaks
+  # @commands.command()
+  # def getStreakCalendar(self, ctx):
+  #   pass
 
   ############################################################################
 

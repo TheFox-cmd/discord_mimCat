@@ -2,3 +2,4 @@ __pycache__/
 .vscode
 MimCat_Documentation.pdf
 .env
+streak_data.txt

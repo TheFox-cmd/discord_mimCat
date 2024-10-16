@@ -9,6 +9,9 @@ import aiohttp
 from user import User
 from rps import start_rps_game
 from emoji import art_react
+from datetime import datetime, timedelta
+
+from streaks import StreakCog
 
 load_dotenv("./.env")
 token = os.environ['DISCORD_BOT_TOKEN']
@@ -24,6 +27,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
     await bot.tree.sync(guild=None)
     print(f'Logged in as {bot.user.name}')
+    await cogLoad()
 
     # guild = discord.utils.get(bot.guilds, name="Just Us")
     # if not guild: 
@@ -55,6 +59,23 @@ async def poke(ctx, target_user : discord.Member):
 @bot.hybrid_command(name="ping", description="Bot's latency check")
 async def ping(ctx):
     """Check bot's latency."""
+
+    # # Get all active users information
+    # guild = ctx.guild
+
+    # with open("active_users.txt", "w", encoding="utf-8") as file:
+    #     # Loop through all members in the guild
+    #     for member in guild.members:
+    #         user_id = member.id
+    #         user_name = member.name
+    #         user_display_name = member.display_name
+
+    #         # Format the user's information
+    #         user_info = f"{user_id},{user_name},{user_display_name}\n"
+            
+    #         # Write the user info to the file
+    #         file.write(user_info)
+
     await ctx.send('Pong!')
 
 # Nini command
@@ -85,57 +106,42 @@ async def rps(ctx, target_user : discord.Member):
     """Play rock paper scissors with a user"""
     await start_rps_game(ctx, target_user)
 
-serverUsers = {}
-async def update_daily(discord_user : discord.Member):
-    """Claim your daily streak"""
-    if discord_user not in serverUsers:
-        # Record new user in serverUsers dictionary
-        user = User(discord_user)
-        serverUsers[discord_user] = user
-    else: user = serverUsers[discord_user]
-    message = user.claimDaily()
-    return message
+# Load StreakCog onto Bot
+async def cogLoad(): 
+    await bot.add_cog(StreakCog(bot))
 
 # Event listener when a message is sent
 @bot.event
 async def on_message(message: discord.Message):
     await art_react(message)
     
-    if message.author.bot: return
+    # Get the streak cog
+    streak_cog = bot.get_cog("StreakCog")
+    if streak_cog:
+        print("Rerouting streak channel")
+        await streak_cog.rerouteStreakChannel(message)
+    else: 
+        print("StreakCog not found")
+    # # Get all messages from this channel starting from September 9th 2024 to now
+    # start_date = datetime(2024, 9, 9)
 
-    streakID = 1281046465875148892
-    practiceID = 1147617085741076481
-    designID = 1158562205848055858
+    # # Get the streak channel by ID
+    # streak_channel = discord.utils.get(message.guild.text_channels, id=1281046465875148892)
 
-    streak_channel = discord.utils.get(message.guild.text_channels, id=streakID)
-    practice_channel = discord.utils.get(message.guild.text_channels, id=practiceID)
-    design_channel = discord.utils.get(message.guild.text_channels, id=designID)
+    # # Check if the streak channel exists
+    # if not streak_channel:
+    #     return
 
-    print(f"Message channel: {message.channel.name}")
-
-    if message.channel != practice_channel and message.channel != design_channel: return 
-    if not message.attachments: return
-    for attachment in message.attachments:
-        if not attachment.content_type.startswith('image/'): continue
-
-        # Download the image
-        async with aiohttp.ClientSession() as session:
-            async with session.get(attachment.url) as resp:
-                if resp.status != 200:
-                    print(f"Failed to download image: {attachment.url}")
-                    return
-
-                # Create a discord.File object from the binary data
-                image_data = await resp.read()
-                file = discord.File(fp=io.BytesIO(image_data), filename=attachment.filename)
-                # Send the image to the streak_channel
-                if streak_channel: await streak_channel.send(file=file)
-    
-        daily_message = await update_daily(message.author)
-        await streak_channel.send(daily_message)
-        print(f"{message.author} {daily_message}")
-        await streak_channel.send(f"{message.author.mention} has submitted their daily artwork!")
-        break 
+    # # Fetch messages starting from the specified date
+    # # Open a file to write the messages
+    # with open("streak_channel_messages.txt", "w", encoding="utf-8") as file:
+    #     # Fetch messages starting from the specified date
+    #     async for msg in streak_channel.history(after=start_date, limit=None):
+    #         # Format the message content to log
+    #         log_message = f"Message from {msg.author}: {msg.content}\n"
+            
+    #         # Write the message to the file
+    #         file.write(log_message)
 
     await bot.process_commands(message)
 
