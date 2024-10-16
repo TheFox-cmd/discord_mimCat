@@ -78,7 +78,7 @@ class StreakCog(commands.Cog):
     self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
     acquireUser = self.c.fetchone()
 
-    userCurrentStreak, userLongestStreak, userRedeemDays, userStartClaim, userEndClaim = acquireUser[1], acquireUser[2], acquireUser[3], datetime(acquireUser[4]), datetime(acquireUser[5])
+    userCurrentStreak, userLongestStreak, userRedeemDays, userStartClaim, userEndClaim = acquireUser[1], acquireUser[2], acquireUser[3], datetime.fromisoformat(acquireUser[4]), datetime.fromisoformat(acquireUser[5])
 
     # New user claiming daily streak
     if acquireUser is None: 
