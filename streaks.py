@@ -57,7 +57,7 @@ class StreakCog(commands.Cog):
     await ctx.send("Data cleared!")
 
   @commands.command()
-  async def addStreak(self, member : discord.Member):
+  async def addStreak(self, ctx, member : discord.Member):
     self.c.execute(f'SELECT * FROM streaks WHERE id = {member.id}')
     user = self.c.fetchone()
     if user is None: return
