@@ -60,8 +60,8 @@ async def poke(ctx, target_user : discord.Member):
 async def ping(ctx):
     """Check bot's latency."""
 
-    # # Get all active users information
-    # guild = ctx.guild
+    # Get all active users information
+    guild = ctx.guild
 
     # with open("active_users.txt", "w", encoding="utf-8") as file:
     #     # Loop through all members in the guild
@@ -75,6 +75,27 @@ async def ping(ctx):
             
     #         # Write the user info to the file
     #         file.write(user_info)
+
+    # # Get all messages from this channel starting from September 9th 2024 to now
+    # start_date = datetime(2024, 9, 9)
+
+    # # Get the streak channel by ID
+    # streak_channel = discord.utils.get(guild.text_channels, id=1281046465875148892)
+
+    # # Check if the streak channel exists
+    # if not streak_channel:
+    #     return
+
+    # # Fetch messages starting from the specified date
+    # # Open a file to write the messages
+    # with open("streak_channel_messages.txt", "w", encoding="utf-8") as file:
+    #     # Fetch messages starting from the specified date
+    #     async for msg in streak_channel.history(after=start_date, limit=None):
+    #         # Format the message content to log
+    #         log_message = f"Message from {msg.author}: {msg.content}\n"
+            
+    #         # Write the message to the file
+    #         file.write(log_message)
 
     await ctx.send('Pong!')
 
@@ -122,26 +143,6 @@ async def on_message(message: discord.Message):
         await streak_cog.rerouteStreakChannel(message)
     else: 
         print("StreakCog not found")
-    # # Get all messages from this channel starting from September 9th 2024 to now
-    # start_date = datetime(2024, 9, 9)
-
-    # # Get the streak channel by ID
-    # streak_channel = discord.utils.get(message.guild.text_channels, id=1281046465875148892)
-
-    # # Check if the streak channel exists
-    # if not streak_channel:
-    #     return
-
-    # # Fetch messages starting from the specified date
-    # # Open a file to write the messages
-    # with open("streak_channel_messages.txt", "w", encoding="utf-8") as file:
-    #     # Fetch messages starting from the specified date
-    #     async for msg in streak_channel.history(after=start_date, limit=None):
-    #         # Format the message content to log
-    #         log_message = f"Message from {msg.author}: {msg.content}\n"
-            
-    #         # Write the message to the file
-    #         file.write(log_message)
 
     await bot.process_commands(message)
 

@@ -2,4 +2,6 @@ __pycache__/
 .vscode
 MimCat_Documentation.pdf
 .env
+active_users.txt
+streak_channel_messages.txt
 streak_data.txt

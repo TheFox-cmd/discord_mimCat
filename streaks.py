@@ -101,6 +101,10 @@ class StreakCog(commands.Cog):
 
     # Update longest streak if current streak is greater
     if userCurrentStreak > userLongestStreak: userLongestStreak = userCurrentStreak
+
+    # Set the start and end claim time for the user
+    userStartClaim = userTime.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    userEndClaim = userStartClaim + timedelta(days=1)
     
     # Sync user's streak data to the database
     self.c.execute(f'UPDATE streaks SET currentStreak = {userCurrentStreak}, longestStreak = {userLongestStreak}, redeemDays = "{userRedeemDays}", startClaim = "{userStartClaim}", endClaim = "{userEndClaim}" WHERE id = {userID}')
