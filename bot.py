@@ -60,8 +60,8 @@ async def poke(ctx, target_user : discord.Member):
 async def ping(ctx):
     """Check bot's latency."""
 
-    # Get all active users information
-    guild = ctx.guild
+    # # Get all active users information
+    # guild = ctx.guild
 
     # with open("active_users.txt", "w", encoding="utf-8") as file:
     #     # Loop through all members in the guild

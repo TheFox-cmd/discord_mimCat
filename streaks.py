@@ -33,7 +33,7 @@ class StreakCog(commands.Cog):
   async def syncPastData(self, ctx):
     now = datetime.now(self.LA_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
     startClaim = now
-    endClaim = now + timedelta(days=1)
+    endClaim = now + timedelta(days=2)
 
     print(startClaim, endClaim)
 
@@ -78,13 +78,16 @@ class StreakCog(commands.Cog):
     self.c.execute(f'SELECT * FROM streaks WHERE id = {userID}')
     acquireUser = self.c.fetchone()
 
-    userCurrentStreak, userLongestStreak, userRedeemDays, userStartClaim, userEndClaim = acquireUser[1], acquireUser[2], acquireUser[3], datetime.fromisoformat(acquireUser[4]), datetime.fromisoformat(acquireUser[5])
 
     # New user claiming daily streak
     if acquireUser is None: 
+      userStartClaim = userTime.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+      userEndClaim = userStartClaim + timedelta(days=1)
       self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({userID}, 1, 1, 0, "{userStartClaim}", "{userEndClaim}")')
       self.conn.commit()
       return f"Daily streak claimed! {member.mention}\nCurrent streak: 1\nLongest streak: 1"
+    
+    userCurrentStreak, userLongestStreak, userRedeemDays, userStartClaim, userEndClaim = acquireUser[1], acquireUser[2], acquireUser[3], datetime.fromisoformat(acquireUser[4]), datetime.fromisoformat(acquireUser[5])
 
     # User has already claimed their daily streak today
     if userTime < userStartClaim: 
