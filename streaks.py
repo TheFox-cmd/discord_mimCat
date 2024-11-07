@@ -96,7 +96,7 @@ class StreakCog(commands.Cog):
       return f"{member.mention}, You have already claimed your daily streak today. Please wait until tomorrow to claim again." 
 
     # Determine if user has claimed their daily streak within the 24 hour window
-    if userStartClaim < userTime and userTime < userEndClaim: userCurrentStreak += 1
+    if userTime < userEndClaim: userCurrentStreak += 1
     else: userCurrentStreak = 1
 
     # Check if user has redeemed their daily streak for 7 days
