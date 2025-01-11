@@ -37,11 +37,28 @@ class StreakCog(commands.Cog):
 
     print(startClaim, endClaim)
 
-    with open ("streak_data.txt", "r", encoding="utf-8") as file:
+    with open("streak_data.txt", "r", encoding="utf-8") as file:
       for line in file:
         user_id, _, _, user_current_streak, user_longest_streak = line.strip().split(",")
-        self.c.execute(f'INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim) VALUES ({user_id}, {user_current_streak}, {user_longest_streak}, {0}, "{startClaim}", "{endClaim}")')
-        self.conn.commit()
+
+        # Check if the user already exists
+        self.c.execute('SELECT id FROM streaks WHERE id = ?', (user_id,))
+        result = self.c.fetchone()
+
+        if result:
+          # Update existing record
+          self.c.execute('''
+              UPDATE streaks
+              SET currentStreak = ?, longestStreak = ?, redeemDays = ?, startClaim = ?, endClaim = ?
+              WHERE id = ?
+          ''', (user_current_streak, user_longest_streak, 0, startClaim, endClaim, user_id))
+        else:
+          # Insert new record
+          self.c.execute('''
+              INSERT INTO streaks (id, currentStreak, longestStreak, redeemDays, startClaim, endClaim)
+              VALUES (?, ?, ?, ?, ?, ?)
+          ''', (user_id, user_current_streak, user_longest_streak, 0, startClaim, endClaim))
+
     await ctx.send("Synced past data!")
 
   @commands.command()

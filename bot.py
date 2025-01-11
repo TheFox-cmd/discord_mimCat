@@ -77,7 +77,7 @@ async def ping(ctx):
     #         file.write(user_info)
 
     # # Get all messages from this channel starting from September 9th 2024 to now
-    # start_date = datetime(2024, 9, 9)
+    # start_date = datetime(2024, 11, 30)
 
     # # Get the streak channel by ID
     # streak_channel = discord.utils.get(guild.text_channels, id=1281046465875148892)
