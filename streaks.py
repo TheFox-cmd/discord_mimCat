@@ -83,6 +83,23 @@ class StreakCog(commands.Cog):
     self.c.execute(f'UPDATE streaks SET currentStreak = {current}, longestStreak = {longest} WHERE id = {member.id}')
     self.conn.commit()
     await member.send("Streak added!")
+    
+  @commands.command()
+  async def setStreak(self, ctx, member : discord.Member, value: int):
+    self.c.execute(f'SELECT * FROM streaks WHERE id = {member.id}')
+    user = self.c.fetchone()
+    if user is None: return
+    
+    now = datetime.now(self.LA_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    startClaim = now
+    endClaim = now + timedelta(days=1)
+    
+    current, longest = value, value if value > user[2] else user[2]
+    redeemDays = user[3] + 1 if value >= 7 else user[3]
+    self.c.execute(f'UPDATE streaks SET currentStreak = {current}, longestStreak = {longest}, redeemDays = {redeemDays}, startClaim = "{startClaim}", endClaim = "{endClaim}" WHERE id = {member.id}')
+    self.conn.commit()
+    await member.send("Streak set!")
+
 
   # * Claim Daily Streak
   async def claimDaily(self, member : discord.Member):
